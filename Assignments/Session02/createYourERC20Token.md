@@ -11,9 +11,9 @@ In this task, you will create your own ERC20 tokens and share them with the BRB 
 
 1. Clone the repository locally.
 2. Create a branch with the name format `YOUR_NAME_TASKNAME`.
-3. Look for a folder with your name in Bootcamper folder.
-4. Create a folder and name it the as per the task name.
-5. Add your Smart contract code in the folder.
+3. Look for a folder with your name in [Bootcamper folder](../../Bootcampers/).
+4. Create a folder and name it the according to the session, in this case it will be `Session02`.
+5. Add your Smart contract code file `.sol` in the folder.
 6. Raise a pull request (PR).
 
 Your submission will be verified and merged!

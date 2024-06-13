@@ -35,8 +35,8 @@ Your task is to enhance the test coverage of our staking contract by writing add
 2. **Submission Requirements:**
    1. Clone the repository locally.
    2. Create a branch with the name format `YOUR_NAME_TASKNAME`.
-   3. Look for a folder with your name in the Bootcampers folder.
-   4. Create a folder and name it as per the task name.
+   3. Look for a folder with your name in the [Bootcamper folder](../../Bootcampers/).
+   4. Create a folder and name it the according to the session, in this case it will be `Session03`.
    5. Add your `.t.sol` file in the folder.
    6. Raise a pull request (PR).
 
