@@ -1,0 +1,66 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 0 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  margin: 2em;
+  padding: 2em;
+  border-radius: 8px;
+  border: 3px solid #1a1a1a;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  background-color: #A444D8;
+}
+
+.wallet {
+  padding: 0 0 2em 0;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+.chains {
+  
+}
+
+.flex-body {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+}
