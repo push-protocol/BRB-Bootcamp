@@ -1,0 +1,24 @@
+1. Inefficient Initialization
+   - Problem: The `initializeUser` function creates a `User` struct and initializes multiple fields redundantly.
+   - Fix: Simplified the initialization by directly assigning the values to the mapping.
+   - Explanation: Reduces the number of operations and gas usage.
+
+2. Unnecessary Boolean Flag
+   - Problem: The `initialized` flag is redundant as the presence of a user in the mapping can be checked.
+   - Fix: Removed the `initialized` flag and used a simple check for user presence.
+   - Explanation: Reduces storage costs and simplifies logic.
+
+3. Lack of Access Control on addReward
+   - Problem: The `addReward` function does not restrict access to only the owner.
+   - Fix: Added the `onlyOwner` modifier to the `addReward` function.
+   - Explanation: Ensures that only the contract owner can add rewards, enhancing security.
+
+4. Inefficient Calculation of Rewards in unstake
+   - Problem: Reward calculation and assignment is done within the unstake function, potentially modifying user’s staked amount.
+   - Fix: Separated the reward assignment and used a temporary variable.
+   - Explanation: Makes the function clearer and ensures consistent handling of the user’s staked amount.
+
+5. Redundant User Structure Initialization in stake
+   - Problem: Redundant initialization of user structure in the `stake` function.
+   - Fix: Directly assigned the values to the mapping.
+   - Explanation: Reduces gas consumption by avoiding unnecessary struct creation.

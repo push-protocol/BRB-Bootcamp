@@ -1,7 +1,7 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../src/BRBStaking.sol";
+import "..Session03/BRB-Staking/src/BRBStaking.sol";
 import "../src/BRBToken.sol";
 
 contract StakingContractTest is Test {
