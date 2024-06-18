@@ -94,7 +94,7 @@ contract BRBStaking is Ownable, ReentrancyGuard {
      */
     function unstake(uint256 _stakeID) external nonReentrant {
         User storage user = userStakeData[msg.sender][_stakeID];
-        require(user.initialized, "Stake not found");
+        require(user.initialized, "User not initialized");
         require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
 
         uint256 stakeAmount = user.stakeAmount;
