@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract BRBStaking is Ownable {
     IERC20 public token;
     uint256 public rewardRate = 100; // Reward rate per user
 
-    struct Stake {
+    struct StakeInfo {
         address user;
         uint256 amount;
         uint256 startTime;
     }
 
-    mapping(address => Stake[]) public userStakes;
+    mapping(address => StakeInfo[]) public userStakes;
     mapping(address => bool) public isInitialized;
 
     event Stake(address indexed user, uint256 indexed stakeId, uint256 amount);
@@ -34,7 +34,7 @@ contract BRBStaking is Ownable {
         require(isInitialized[msg.sender], "User not initialized");
         require(token.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
 
-        userStakes[msg.sender].push(Stake({
+        userStakes[msg.sender].push(StakeInfo({
             user: msg.sender,
             amount: _amount,
             startTime: block.timestamp
@@ -45,7 +45,7 @@ contract BRBStaking is Ownable {
 
     function unstake(uint256 _stakeId) external {
         require(isInitialized[msg.sender], "User not initialized");
-        Stake storage stake = userStakes[msg.sender][_stakeId];
+        StakeInfo storage stake = userStakes[msg.sender][_stakeId];
         require(block.timestamp >= stake.startTime + 7 days, "Cannot unstake before 7 days");
 
         uint256 reward = rewardRate * stake.amount / 100;
