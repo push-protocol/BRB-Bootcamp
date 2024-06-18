@@ -1,0 +1,231 @@
+1. Inefficient Gas Usage due to State Variables
+
+Accessing state variables (SLOAD) costs approximately 800 gas, while accessing constants 
+costs around 3-5 gas.
+
+Issue: The LOCKUP_PERIOD and REWARD_AMOUNT are defined as state variables, resulting in
+higher gas costs for reading these values during function execution.
+
+uint256 public lockupPeriod = 7 days;
+uint256 public rewardAmount = 100 * 10 ** 18;>
+
+
+Solution: Define LOCKUP_PERIOD and REWARD_AMOUNT as constants to reduce gas consumption.
+
+uint256 public constant LOCKUP_PERIOD = 7 days;
+uint256 public constant REWARD_AMOUNT = 100 * 10 ** 18;
+
+-------------------------------------------------------------------
+
+2. Redundant Storage of User Address in Struct
+
+Functions that use the userStakeData mapping call msg.sender as the key, making userAddress
+in the struct unnecessary. Removing this redundancy saves gas and simplifies the contract.
+
+Issue: The User struct includes userAddress, which is redundant because the address
+is already known as the key in the mapping.
+
+struct User {
+    address userAddress;
+    uint256 stakeAmount;
+    bool initialized;
+    uint256 timeStamp;
+    uint8 stakeID;
+}
+
+
+Solution: Remove userAddress from the User struct.
+
+struct User {
+    uint256 stakeAmount;
+    bool initialized;
+    uint256 timeStamp;
+    uint8 stakeID;
+}
+
+-----------------------------------------------------------
+
+3. Inefficient Gas Usage in Repeated Storage Reads/Writes
+
+Reading from and writing to storage are expensive operations in terms of gas 
+By using local variables to store values temporarily, we reduce the number of storage accesses,
+thus optimizing gas usage.
+
+Issue: The unstake function repeatedly reads and writes to storage variables, 
+which increases gas consumption.
+
+function unstake(uint256 _stakeID) external {
+    User storage user = userStakeData[msg.sender][_stakeID];
+    require(user.initialized, "Stake not found");
+    require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
+
+    totalStaked -= user.stakeAmount;
+
+    if (rewardPool >= REWARD_AMOUNT) {
+        user.stakeAmount += REWARD_AMOUNT;
+        rewardPool -= REWARD_AMOUNT;
+    }
+
+    token.transfer(msg.sender, user.stakeAmount);
+
+    emit TokensUnstaked(msg.sender, user.stakeAmount, _stakeID);
+
+    delete userStakeData[msg.sender][_stakeID];
+}
+
+
+Solution: Minimize the number of storage operations by using local variables for repeated access.
+
+function unstake(uint256 _stakeID) external {
+    User storage user = userStakeData[msg.sender][_stakeID];
+    require(user.initialized, "Stake not found");
+    require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
+
+    uint256 stakeAmount = user.stakeAmount;
+    uint256 rewardAmount = 0;
+
+    totalStaked -= stakeAmount;
+
+    if (rewardPool >= REWARD_AMOUNT) {
+        rewardAmount = REWARD_AMOUNT;
+        rewardPool -= REWARD_AMOUNT;
+    }
+
+    uint256 totalAmount = stakeAmount + rewardAmount;
+    token.transfer(msg.sender, totalAmount);
+
+    emit TokensUnstaked(msg.sender, totalAmount, _stakeID);
+
+    delete userStakeData[msg.sender][_stakeID];
+}
+
+-----------------------------------------------------------------------------------
+
+4. Lack of Re-Entrancy Guard
+
+Re-entrancy attacks can occur when a function makes an external call before updating its state. 
+By implementing a re-entrancy guard, the contract can ensure that the function cannot be called 
+again until it has completed its execution, thus preventing such attacks.
+
+
+Issue: The contract does not implement a re-entrancy guard, leaving it vulnerable
+to re-entrancy attacks where an attacker can repeatedly call the unstake function
+before the initial call completes, potentially draining funds.
+
+Solution: Implement a re-entrancy guard using a modifier to prevent re-entrant calls.
+
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract BRBStaking is Ownable, ReentrancyGuard {
+    // Existing code...
+
+    function stake(uint256 _amount) external nonReentrant {
+        require(userStakeData[msg.sender][0].initialized, "User not initialized");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+
+        uint8 stakeID = userStakeCount[msg.sender] + 1;
+
+        User memory user;
+        user.stakeAmount = _amount;
+        user.timeStamp = block.timestamp;
+        user.stakeID = stakeID;
+        user.initialized = true;
+
+        userStakeData[msg.sender][stakeID] = user;
+
+        userStakeCount[msg.sender]++;
+        totalStaked += _amount;
+
+        emit TokensStaked(msg.sender, _amount, stakeID);
+    }
+
+    function unstake(uint256 _stakeID) external nonReentrant {
+        User storage user = userStakeData[msg.sender][_stakeID];
+        require(user.initialized, "Stake not found");
+        require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
+
+        uint256 stakeAmount = user.stakeAmount;
+        uint256 rewardAmount = 0;
+
+        totalStaked -= stakeAmount;
+
+        if (rewardPool >= REWARD_AMOUNT) {
+            rewardAmount = REWARD_AMOUNT;
+            rewardPool -= REWARD_AMOUNT;
+        }
+
+        uint256 totalAmount = stakeAmount + rewardAmount;
+        token.transfer(msg.sender, totalAmount);
+
+        emit TokensUnstaked(msg.sender, totalAmount, _stakeID);
+
+        delete userStakeData[msg.sender][_stakeID];
+    }
+
+    function addReward(uint256 _amount) external nonReentrant {
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        rewardPool += _amount;
+        emit RewardsAdded(_amount);
+    }
+}
+
+---------------------------------------------------------------------------------------------------
+
+5. Event Emissions Optimization
+
+By consolidating events, the contract can log all necessary information in fewer events, 
+reducing the gas consumed for each transaction.
+
+Issue: Event emissions, while useful for logging and off-chain monitoring, can consume significant gas.
+Emitting multiple events can increase gas costs unnecessarily.
+
+event UserInitialized(address indexed user);
+event TokensStaked(address indexed user, uint256 amount, uint256 stakeID);
+event TokensUnstaked(address indexed user, uint256 amount, uint256 stakeID);
+event RewardsAdded(uint256 amount);
+
+function initializeUser() public returns (bool) {
+    // Some logic
+    emit UserInitialized(msg.sender);
+}
+
+function stake(uint256 _amount) external nonReentrant {
+    // Some logic
+    emit TokensStaked(msg.sender, _amount, stakeID);
+}
+
+function unstake(uint256 _stakeID) external nonReentrant {
+    // Some logic
+    emit TokensUnstaked(msg.sender, totalAmount, _stakeID);
+}
+
+function addReward(uint256 _amount) external nonReentrant {
+    // Some logic
+    emit RewardsAdded(_amount);
+}
+
+
+Solution: Consolidate event emissions to reduce the number of events emitted and thereby save gas.
+
+event UserAction(address indexed user, string action, uint256 amount, uint256 stakeID);
+
+function initializeUser() public returns (bool) {
+    // Some logic
+    emit UserAction(msg.sender, "Initialized", 0, 0);
+}
+
+function stake(uint256 _amount) external nonReentrant {
+    // Some logic
+    emit UserAction(msg.sender, "Staked", _amount, stakeID);
+}
+
+function unstake(uint256 _stakeID) external nonReentrant {
+    // Some logic
+    emit UserAction(msg.sender, "Unstaked", totalAmount, _stakeID);
+}
+
+function addReward(uint256 _amount) external nonReentrant {
+    // Some logic
+    emit UserAction(msg.sender, "RewardAdded", _amount, 0);
+}
+
