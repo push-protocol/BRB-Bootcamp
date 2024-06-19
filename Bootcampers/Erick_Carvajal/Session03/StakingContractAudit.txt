@@ -1,0 +1,84 @@
+Issues Identified
+
+1. Redundant User Initialization Check in initializeUser and stake: There is a redundant
+initialization check in the initializeUser function, which could be optimized. Also, the stake function
+reinitializes the user structure, which is unnecessary.
+
+2. Potential Reentrancy Attack: The unstake function could be susceptible to reentrancy
+attacks because it transfers tokens before updating the state.
+
+3. Inefficient Storage Access: The current approach of using nested mappings for user
+stakes can be optimized to reduce storage operations and gas costs.
+
+4. Hardcoded Reward Amount: The reward amount is hardcoded and might not be flexible
+for different scenarios or configurations.
+
+5. Lack of Access Control for addReward: Although only the admin can call addReward,
+it should use the onlyOwner modifier to enforce this more clearly.
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title StakingContract
+ * @dev A contract that allows users to stake ERC20 tokens, earn rewards, and unstake after a lockup period.
+ */
+contract BRBStaking is Ownable {
+    IERC20 public token;
+    uint256 public totalStaked;
+    uint256 public rewardPool;
+    uint256 public LOCKUP_PERIOD = 7 days;
+    uint256 public REWARD_AMOUNT = 100 * 10 ** 18;
+
+    /**
+     * @dev Struct to represent a user's staking information.
+     */
+    struct User {
+        address userAddress;
+        uint256 stakeAmount;
+        uint256 timeStamp;
+        uint8 stakeID;
+    }
+
+    mapping(address => mapping(uint256 => User)) public userStakeData;
+    mapping(address => uint8) public userStakeCount;
+
+    /**
+     * @dev Event emitted when a user initializes their staking profile.
+     * @param user The address of the user.
+     */
+    event UserInitialized(address indexed user);
+
+    /**
+     * @dev Event emitted when a user stakes tokens.
+     * @param user The address of the user.
+     * @param amount The amount of tokens staked.
+     * @param stakeID The ID of the stake.
+     */
+    event TokensStaked(address indexed user, uint256 amount, uint256 stakeID);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
