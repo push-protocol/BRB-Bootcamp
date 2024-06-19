@@ -1,0 +1,108 @@
+1. Inefficient Initialization
+   - Problem: The `initializeUser` function creates a `User` struct and initializes multiple fields redundantly.
+   - Fix: Simplified the initialization by directly assigning the values to the mapping.
+   - Explanation: Reduces the number of operations and gas usage.
+
+2. Unnecessary Boolean Flag
+   - Problem: The `initialized` flag is redundant as the presence of a user in the mapping can be checked.
+   - Fix: Removed the `initialized` flag and used a simple check for user presence.
+   - Explanation: Reduces storage costs and simplifies logic.
+
+3. Lack of Access Control on addReward
+   - Problem: The `addReward` function does not restrict access to only the owner.
+   - Fix: Added the `onlyOwner` modifier to the `addReward` function.
+   - Explanation: Ensures that only the contract owner can add rewards, enhancing security.
+
+4. Inefficient Calculation of Rewards in unstake
+   - Problem: Reward calculation and assignment is done within the unstake function, potentially modifying user’s staked amount.
+   - Fix: Separated the reward assignment and used a temporary variable.
+   - Explanation: Makes the function clearer and ensures consistent handling of the user’s staked amount.
+
+5. Redundant User Structure Initialization in stake
+   - Problem: Redundant initialization of user structure in the `stake` function.
+   - Fix: Directly assigned the values to the mapping.
+   - Explanation: Reduces gas consumption by avoiding unnecessary struct creation.
+------------------------------------------------------------------------------------------
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+
+contract BRBStaking is Ownable {
+    IERC20 public token;
+    uint256 public totalStaked;
+    uint256 public rewardPool;
+    uint256 public LOCKUP_PERIOD = 7 days; 
+    uint256 public REWARD_AMOUNT = 100 * 10 ** 18; 
+
+    
+    struct User {
+        uint256 stakeAmount;
+        uint256 timeStamp;
+    }
+
+    mapping(address => mapping(uint256 => User)) public userStakeData;
+    mapping(address => uint8) public userStakeCount;
+
+    
+    event UserInitialized(address indexed user);
+    event TokensStaked(address indexed user, uint256 amount, uint256 stakeID);
+    event TokensUnstaked(address indexed user, uint256 amount, uint256 stakeID);
+    event RewardsAdded(uint256 amount);
+
+    constructor(IERC20 _token) {
+        token = _token;
+    }
+
+   
+    function initializeUser() external {
+        require(userStakeCount[msg.sender] == 0, "User already initialized");
+
+        userStakeData[msg.sender][0] = User(0, 0);
+        emit UserInitialized(msg.sender);
+    }
+
+   
+    function stake(uint256 _amount) external {
+        require(userStakeCount[msg.sender] > 0, "User not initialized");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+
+        uint8 stakeID = userStakeCount[msg.sender] + 1;
+        userStakeData[msg.sender][stakeID] = User(_amount, block.timestamp);
+
+        userStakeCount[msg.sender]++;
+        totalStaked += _amount;
+
+        emit TokensStaked(msg.sender, _amount, stakeID);
+    }
+
+    function unstake(uint256 _stakeID) external {
+        User storage user = userStakeData[msg.sender][_stakeID];
+        require(user.stakeAmount > 0, "Stake not found");
+        require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
+
+        totalStaked -= user.stakeAmount;
+
+        uint256 payout = user.stakeAmount;
+        if (rewardPool >= REWARD_AMOUNT) {
+            payout += REWARD_AMOUNT;
+            rewardPool -= REWARD_AMOUNT;
+        }
+
+        token.transfer(msg.sender, payout);
+
+        emit TokensUnstaked(msg.sender, user.stakeAmount, _stakeID);
+
+        delete userStakeData[msg.sender][_stakeID];
+    }
+
+   
+    function addReward(uint256 _amount) external onlyOwner {
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        rewardPool += _amount;
+
+        emit RewardsAdded(_amount);
+    }
+}
