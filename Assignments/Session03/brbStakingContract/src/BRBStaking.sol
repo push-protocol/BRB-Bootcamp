@@ -13,7 +13,7 @@ contract BRBStaking is Ownable {
     uint256 public totalStaked;
     uint256 public rewardPool;
     uint256 public LOCKUP_PERIOD = 7 days; 
-    uint256 public REWARD_AMOUNT = 100 * 10 ** 18; 
+    uint256 public REWARD_AMOUNT = 100 * (10 ** 18); 
 
     /**
      * @dev Struct to represent a user's staking information.
