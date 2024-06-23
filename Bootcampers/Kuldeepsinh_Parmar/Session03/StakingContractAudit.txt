@@ -1,0 +1,62 @@
+# Issue 1 : Reentrancy Vulnerability
+
+Issue: 
+In the stake function, the contract calls token.transferFrom(msg.sender, address(this), _amount), which can lead to reentrancy attacks if the token contract is malicious.
+
+Fix: 
+Replace token.transferFrom with token.transfer to prevent reentrancy attacks.
+
+Explanation: 
+Reentrancy attacks occur when a contract calls another contract, which then calls the original contract recursively. By using token.transfer instead of token.transferFrom, we ensure that the token contract cannot call our contract recursively, preventing reentrancy attacks.
+
+
+#Issue 2 : Uninitialised Struct
+
+Issue: 
+In the initialiseUser function, the User struct is not fully initialised, which can lead to unexpected behavior.
+
+Fix: 
+Initialise all struct members in the initialiseUser function.
+
+Explanation: 
+Uninitialised structs can lead to unexpected behaviour and errors. By fully initialising the User struct, we ensure that all members have a valid value, making the contract more predictable and reliable.
+
+
+# Issue 3 : Gas Inefficiency
+
+Issue: 
+In the stake function, the contract iterates over the userStakeData mapping to find the next available stakeID, which can be gas-inefficient.
+
+Fix: 
+Introduce a separate stakeIDCounter to optimize the stake function.
+
+Explanation: 
+Iterating over a mapping can be gas-inefficient, especially for large datasets. By introducing a separate stakeIDCounter, we can increment the counter and use it as the next available stakeID, reducing gas consumption and improving contract performance.
+
+
+# Issue 4 : Reward Pool Overflow
+
+Issue: 
+In the addReward function, the rewardPool variable can overflow if the _amount is large enough.
+
+Fix: 
+Use SafeMath to prevent overflows in the addReward function.
+
+Explanation: 
+Overflows can occur when a variable exceeds its maximum value. By using SafeMath, we can prevent overflows and ensure that the rewardPool variable remains within its valid range.
+
+
+# Issue 5 : Unprotected userStakeCount Increment
+
+Issue: 
+In the stake function, the userStakeCount variable is incremented without checking for overflows.
+
+Fix: 
+Use SafeMath to protect the userStakeCount increment in the stake function.
+
+Explanation: 
+Unprotected increments can lead to overflows, which can cause unexpected behaviour. By using SafeMath, we can prevent overflows and ensure that the userStakeCount variable remains within its valid range.
+
+
+
+These fixes improve the contract by preventing reentrancy attacks, ensuring predictable behavior, optimising gas consumption, preventing overflows, and protecting against unexpected behavior.
