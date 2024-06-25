@@ -241,14 +241,73 @@ While there is no direct exploit, it suggests potential confusion and maintenanc
 mapping(address => mapping(uint256 => User)) public userStakeData;
 ```
 
-#### Recommended Mitigation:
-Remove the commented-out code for clarity.
+### 8. Solidity Pragma Should Be Specific, Not Wide
+
+#### Description:
+Using a wide version for the Solidity pragma can introduce risks, as future compiler versions might include changes that affect the contract's behavior.
+
+#### Impact: Low
+Specifying a wide version may lead to unintended behavior due to compiler changes.
+
+#### Proof of Concept:
 ```solidity
-mapping(address => mapping(uint8 => User)) public userStakeData;
+pragma solidity ^0.8.24;
 ```
 
+#### Recommended Mitigation:
+Use a specific version of Solidity to ensure consistent behavior.
+```solidity
+pragma solidity 0.8.24;
+```
 
-### 8. Inefficient Storage of Constants
+### 9. Missing Checks for `address(0)` When Assigning Values to Address State Variables
+
+#### Description:
+There is no check to ensure that the token address is not the zero address when assigning it to the `token` state variable.
+
+#### Impact: Low
+Assigning `address(0)` to the token address can lead to unexpected behavior or security issues.
+
+#### Proof of Concept:
+```solidity
+token = _token;
+```
+
+#### Recommended Mitigation:
+Add a check to ensure the token address is not the zero address.
+```solidity
+require(_token != address(0), "Invalid token address");
+token = _token;
+```
+
+### 10. Unsafe ERC20 Operations Should Not Be Used
+
+#### Description:
+ERC20 functions may not behave as expected because their return values are not always meaningful. It is recommended to use OpenZeppelin's SafeERC20 library to handle ERC20 operations safely.
+
+#### Impact: Low
+Using raw ERC20 operations without proper checks may lead to unexpected behavior or security vulnerabilities.
+
+#### Proof of Concept:
+
+```solidity
+token.transfer(msg.sender, user.stakeAmount);
+```
+
+#### Recommended Mitigation:
+Use the SafeERC20 library from OpenZeppelin for all ERC20 operations.
+```solidity
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+// Inside the contract
+using SafeERC20 for IERC20;
+
+// Example usage
+token.safeTransferFrom(msg.sender, address(this), _amount);
+token.safeTransfer(msg.sender, user.stakeAmount);
+```
+
+### 11. Inefficient Storage of Constants
 
 #### Description:
 `LOCKUP_PERIOD` and `REWARD_AMOUNT` are declared as mutable state variables instead of constants. This increases gas costs for every access.
