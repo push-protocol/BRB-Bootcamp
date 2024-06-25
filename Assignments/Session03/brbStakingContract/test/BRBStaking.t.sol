@@ -1,13 +1,19 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../src/BRBStaking.sol";
 import "../src/BRBToken.sol";
 
-contract StakingContractTest is Test{
+contract StakingContractTest is Test {
     BRBStaking stakingContract;
     BRBToken token;
-    
+    // Event public e;
+
+    event TokensStaked(address indexed user, uint256 amount, uint256 stakeID);
+    event TokensUnstaked(address indexed user, uint256 amount, uint256 stakeID);
+    event RewardsAdded(uint256 amount);
+
     // Actors
     address owner;
     address user;
@@ -26,8 +32,7 @@ contract StakingContractTest is Test{
     }
 
     // User should be able to initialize their staking profile - JUST ONCE
-    function testInitializeUserTwice() public{
-
+    function testInitializeUserTwice() public {
         vm.startPrank(user);
         stakingContract.initializeUser();
 
@@ -35,8 +40,8 @@ contract StakingContractTest is Test{
         stakingContract.initializeUser();
 
         vm.stopPrank();
-        
     }
+
     // TEST initializeUser() function
     function testInitializeUser() public {
         // Prank as user
@@ -44,14 +49,15 @@ contract StakingContractTest is Test{
         stakingContract.initializeUser();
 
         // Verify user initialization
-        (address userAddress, , bool initialized, ,) = stakingContract.userStakeData(user, 0);
+        (address userAddress, bool initialized, , , ) = stakingContract
+            .userStakeData(user, 0);
         assertEq(userAddress, user);
         assertTrue(initialized);
     }
 
     // Test stake() function
     function testStake() public {
-        uint256 stakeAmount = 100 * 10**18;
+        uint256 stakeAmount = 100 ether;
 
         // Prank as user to approve and stake
         vm.startPrank(user);
@@ -59,9 +65,15 @@ contract StakingContractTest is Test{
         stakingContract.initializeUser();
         stakingContract.stake(stakeAmount);
 
-        vm.stopPrank(); 
+        vm.stopPrank();
         // Verify staking
-        (address userAddress, uint256 stakeAmountStored, bool initialized, ,uint256 stakeID) = stakingContract.userStakeData(user, 1);
+        (
+            address userAddress,
+            bool initialized,
+            uint256 stakeID,
+            uint256 stakeAmountStored,
+
+        ) = stakingContract.userStakeData(user, 1);
         assertEq(userAddress, user);
         assertEq(stakeAmountStored, stakeAmount);
         assertEq(stakeID, 1);
@@ -69,18 +81,18 @@ contract StakingContractTest is Test{
     }
 
     // TEST unstake() function
-    function testUnstakeFunction() public{
-        uint256 stakeAmount = 100 * 10**18;
-        uint256 rewardAmount = 100 * 10**18;
+    function testUnstakeFunction() public {
+        uint256 stakeAmount = 100 ether;
+        uint256 rewardAmount = 100 ether;
 
         // Prank as user to approve and stake
         vm.startPrank(user);
         token.approve(address(stakingContract), stakeAmount);
         stakingContract.initializeUser();
         stakingContract.stake(stakeAmount);
-        vm.stopPrank(); 
+        vm.stopPrank();
         // Verify staking
-        (address userAddress, uint256 stakeAmountStored, bool initialized, ,uint256 stakeID) = stakingContract.userStakeData(user, 1);
+        // var () = stakingContract.userStakeData(user, 1);
 
         // Owner Adds Reward
         vm.startPrank(owner);
@@ -89,6 +101,10 @@ contract StakingContractTest is Test{
         vm.stopPrank();
 
         // Fast forward time by 7 days
+        vm.startPrank(user);
+        vm.expectRevert("Lockup period not completed");
+        stakingContract.unstake(1);
+        vm.stopPrank();
         vm.warp(block.timestamp + 7 days);
 
         // Chck user balance before unstake
@@ -98,10 +114,80 @@ contract StakingContractTest is Test{
         stakingContract.unstake(1);
         vm.stopPrank();
 
-        // Check user balance after unstake 
+        // Check user balance after unstake
         uint256 userBalanceAfter = token.balanceOf(user);
         // console.log(userBalanceBefore, userBalanceAfter, stakeAmount, rewardAmount);
-        assertEq(userBalanceAfter, userBalanceBefore + stakeAmount + rewardAmount);
+        assertEq(
+            userBalanceAfter,
+            userBalanceBefore + stakeAmount + rewardAmount
+        );
+    }
+
+    function testAddReward() public {
+        vm.startPrank(owner);
+        token.approve(address(stakingContract), 100 ether);
+        stakingContract.addReward(100 ether);
+        vm.stopPrank();
+    }
+
+    //4. If a Staker tries to UNSTAKE before 7 days, it should revert
+    function testUnstakeBeforeTime() public {
+        uint256 stakeAmount = 100 ether;
+
+        // Prank as user to approve and stake
+        vm.startPrank(user);
+        token.approve(address(stakingContract), stakeAmount);
+        stakingContract.initializeUser();
+        stakingContract.stake(stakeAmount);
+        vm.stopPrank();
+
+        // Unstaking before 7 days
+        vm.startPrank(user);
+        vm.expectRevert("Lockup period not completed");
+        stakingContract.unstake(1);
+        vm.stopPrank();
+    }
+
+    // 5. Event Emission of Stake, Unstake and RewardAdded should be accurately tested
+    function testEmitStakeEvent() public {
+        vm.startPrank(user);
+        token.approve(address(stakingContract), 100 ether);
+        stakingContract.initializeUser();
+
+        vm.expectEmit(true, false, false, false);
+        emit TokensStaked(user, 50, 1);
+        stakingContract.stake(100 ether);
+    }
+
+    function testEmitUnstakeEvent() public {
+        vm.startPrank(user);
+        token.approve(address(stakingContract), 100 ether);
+        stakingContract.initializeUser();
+        stakingContract.stake(100 ether);
+        vm.stopPrank();
+
+        vm.startPrank(owner);
+        token.approve(address(stakingContract), 100 ether);
+        stakingContract.addReward(100 ether);
+        vm.stopPrank();
+
+        // Fast forward time by 7 days
+        vm.warp(block.timestamp + 7 days);
+
+        vm.startPrank(user);
+        vm.expectEmit(true, false, true, false);
+        emit TokensUnstaked(user, 50, 1);
+        stakingContract.unstake(1);
+        vm.stopPrank();
+    }
+
+    function testEmitRewardEvent() public {
+        vm.startPrank(owner);
+        token.approve(address(stakingContract), 100 ether);
+        vm.expectEmit(true, false, false, false);
+        emit RewardsAdded(50);
+        stakingContract.addReward(100 ether);
+        vm.stopPrank();
     }
 
     // TASKS TO DO for BRB DEVELOPERS
