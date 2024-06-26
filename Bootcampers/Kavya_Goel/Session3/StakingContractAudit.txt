@@ -1,0 +1,111 @@
+1. Lockup period and Reward Amount are not given immutable whereas it should be immutable as their values remain constant even after contract is deployed.
+
+2. In the struct User , stack id is initiated by uint8 whereas it should be initiated as unit256 so that it doesnot limit the number of stakes 
+also , same in code   {  mapping(address => uint8) public userStakeCount; }
+
+
+3. In this constructor(IERC20 _token) Ownable(msg.sender) {
+        token = _token;
+    }
+There is no need of Ownable(msg.sender) as constructor doesnot take any such parameters 
+
+4. if (rewardPool >= REWARD_AMOUNT) {
+            user.stakeAmount += REWARD_AMOUNT;  //Error
+            rewardPool -= REWARD_AMOUNT;
+        }
+The rewards are added to the stake amount only if the rewardPool is sufficient. This logic needs clarity to avoid user confusion and fund manipulation.
+
+5. In the initializeUser function, it’s redundant to initialize the userStakeData[msg.sender][0] to a zero User struct. 
+
+
+Final Code : 
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title StakingContract
+ * @dev A contract that allows users to stake ERC20 tokens, earn rewards, and unstake after a lockup period.
+ */
+contract BRBStaking is Ownable {
+    IERC20 public token;
+    uint256 public totalStaked;
+    uint256 public rewardPool;
+    uint256 public immutable LOCKUP_PERIOD; 
+    uint256 public immutable REWARD_AMOUNT; 
+
+    /**
+     * @dev Struct to represent a user's staking information.
+     */
+    struct User {
+        address userAddress;
+        uint256 stakeAmount;
+        bool initialized;
+        uint256 timeStamp;
+        uint256 stakeID;
+    }
+
+    mapping(address => mapping(uint256 => User)) public userStakeData;
+    mapping(address => uint256) public userStakeCount;
+
+    event UserInitialized(address indexed user);
+    event TokensStaked(address indexed user, uint256 amount, uint256 stakeID);
+    event TokensUnstaked(address indexed user, uint256 amount, uint256 stakeID);
+    event RewardsAdded(uint256 amount);
+
+    constructor(IERC20 _token, uint256 _lockupPeriod, uint256 _rewardAmount) {
+        token = _token;
+        LOCKUP_PERIOD = _lockupPeriod;
+        REWARD_AMOUNT = _rewardAmount;
+    }
+
+    function initializeUser() external {
+        require(!userStakeData[msg.sender][0].initialized, "User already initialized");
+        User memory user = User(msg.sender, 0, true, 0, 0);
+        userStakeData[msg.sender][0] = user;
+        emit UserInitialized(msg.sender);
+    }
+
+    function stake(uint256 _amount) external {
+        require(userStakeData[msg.sender][0].initialized, "User not initialized");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+
+        uint256 stakeID = userStakeCount[msg.sender];
+        User memory user = User(msg.sender, _amount, true, block.timestamp, stakeID);
+        userStakeData[msg.sender][stakeID] = user;
+
+        userStakeCount[msg.sender]++;
+        totalStaked += _amount;
+
+        emit TokensStaked(msg.sender, _amount, stakeID);
+    }
+
+    function unstake(uint256 _stakeID) external {
+        User storage user = userStakeData[msg.sender][_stakeID];
+        require(user.initialized, "Stake not found");
+        require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
+
+        uint256 amountToTransfer = user.stakeAmount;
+        if (rewardPool >= REWARD_AMOUNT) {
+            amountToTransfer += REWARD_AMOUNT;
+            rewardPool -= REWARD_AMOUNT;
+        }
+
+        totalStaked -= user.stakeAmount;
+        delete userStakeData[msg.sender][_stakeID];
+
+        require(token.transfer(msg.sender, amountToTransfer), "Token transfer failed");
+
+        emit TokensUnstaked(msg.sender, user.stakeAmount, _stakeID);
+    }
+
+    function addReward(uint256 _amount) external onlyOwner {
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        rewardPool += _amount;
+
+        emit RewardsAdded(_amount);
+    }
+}
