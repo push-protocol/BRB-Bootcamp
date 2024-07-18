@@ -3,7 +3,6 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "forge-std/console.sol";
 
 /**
  * @title StakingContract
@@ -13,21 +12,21 @@ contract BRBStaking is Ownable {
     IERC20 public token;
     uint256 public totalStaked;
     uint256 public rewardPool;
-    uint256 public constant LOCKUP_PERIOD = 7 days;
-    uint256 public constant REWARD_AMOUNT = 100 ether;
+    uint256 public LOCKUP_PERIOD = 7 days; 
+    uint256 public REWARD_AMOUNT = 100 * 10 ** 18; 
 
     /**
      * @dev Struct to represent a user's staking information.
      */
     struct User {
         address userAddress;
-        bool initialized;
-        uint8 stakeID;
         uint256 stakeAmount;
+        bool initialized;
         uint256 timeStamp;
+        uint8 stakeID;
+        bool rewardReceived; // Track if the reward has been received
     }
 
-    //mapping(address => mapping(uint256 => User)) public userStakeData;
     mapping(address => mapping(uint256 => User)) public userStakeData;
     mapping(address => uint8) public userStakeCount;
 
@@ -71,25 +70,18 @@ contract BRBStaking is Ownable {
      * @notice Initializes the user's staking profile.
      */
     function initializeUser() external {
-        require(
-            !userStakeData[msg.sender][0].initialized,
-            "User already initialized"
-        );
+        require(!userStakeData[msg.sender][0].initialized, "User already initialized");
 
-        // User memory user;
-        // user.userAddress = msg.sender;
-        // user.stakeAmount = 0;
-        // user.timeStamp = 0;
-        // user.stakeID = 0;
-        // user.initialized = true;
+        User memory user;
 
-        userStakeData[msg.sender][0] = User({
-            userAddress: msg.sender,
-            initialized: true,
-            stakeID: 0,
-            stakeAmount: 0,
-            timeStamp: 0
-        });
+        user.userAddress = msg.sender;
+        user.stakeAmount = 0;
+        user.timeStamp = 0;
+        user.stakeID = 0;
+        user.initialized = true;
+        user.rewardReceived = false; // Initialize rewardReceived to false
+
+        userStakeData[msg.sender][0] = user;
         emit UserInitialized(msg.sender);
     }
 
@@ -97,35 +89,23 @@ contract BRBStaking is Ownable {
      * @notice Allows a user to stake tokens.
      * @param _amount The amount of tokens to stake.
      */
-    function stake(uint256 _amount) external payable {
-        require(
-            userStakeData[msg.sender][0].initialized,
-            "User not initialized"
-        );
-        require(
-            token.transferFrom(msg.sender, address(this), _amount),
-            "Token transfer failed"
-        );
+    function stake(uint256 _amount) external {
+        require(userStakeData[msg.sender][0].initialized, "User not initialized");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
 
         uint8 stakeID = userStakeCount[msg.sender] + 1;
-        // userStakeCount[msg.sender]++;
-        // User memory user;
-        // user.stakeAmount = _amount;
-        // user.userAddress = msg.sender;
-        // user.timeStamp = block.timestamp;
-        // user.stakeID = stakeID;
-        // user.initialized = true;
 
-        userStakeData[msg.sender][stakeID] = User({
-            stakeAmount: _amount,
-            userAddress: msg.sender,
-            timeStamp: block.timestamp,
-            stakeID: stakeID,
-            initialized: true
-        });
+        User memory user;
+        user.stakeAmount = _amount;
+        user.userAddress = msg.sender;
+        user.timeStamp = block.timestamp;
+        user.stakeID = stakeID;
+        user.initialized = true;
+        user.rewardReceived = false; // Reset reward status on new stake
 
-        // optimized
-        // userStakeCount[msg.sender]++;
+        userStakeData[msg.sender][stakeID] = user;
+
+        userStakeCount[msg.sender]++;
         totalStaked += _amount;
 
         emit TokensStaked(msg.sender, _amount, stakeID);
@@ -136,24 +116,27 @@ contract BRBStaking is Ownable {
      * @param _stakeID The ID of the stake to unstake.
      */
     function unstake(uint256 _stakeID) external {
-        User memory user = userStakeData[msg.sender][_stakeID];
-        require(user.initialized, "User not Initialized");
+        User storage user = userStakeData[msg.sender][_stakeID];
+        require(user.initialized, "Stake not found");
+        require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
 
-        require(
-            block.timestamp >= user.timeStamp + LOCKUP_PERIOD,
-            "Lockup period not completed"
-        );
+         // Check if the user has already received the reward
+        require(!user.rewardReceived, "User has already received the maximum reward");
 
         totalStaked -= user.stakeAmount;
-        if (rewardPool >= REWARD_AMOUNT) {
+
+        // Check if the user has already received the reward
+        if (!user.rewardReceived && rewardPool >= REWARD_AMOUNT) {
             user.stakeAmount += REWARD_AMOUNT;
-            token.transfer(msg.sender, user.stakeAmount);
             rewardPool -= REWARD_AMOUNT;
+            user.rewardReceived = true; // Mark that the user has received the reward
         }
+
+        token.transfer(msg.sender, user.stakeAmount);
 
         emit TokensUnstaked(msg.sender, user.stakeAmount, _stakeID);
 
-        // delete userStakeData[msg.sender][_stakeID];
+        delete userStakeData[msg.sender][_stakeID];
     }
 
     /**
@@ -161,11 +144,7 @@ contract BRBStaking is Ownable {
      * @param _amount The amount of tokens to add to the reward pool.
      */
     function addReward(uint256 _amount) external onlyOwner {
-        require(
-            token.transferFrom(msg.sender, address(this), _amount),
-            "Token transfer failed"
-        );
-        require(_amount == 100 ether, "Amount must be 100 ether");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
         rewardPool += _amount;
 
         emit RewardsAdded(_amount);
