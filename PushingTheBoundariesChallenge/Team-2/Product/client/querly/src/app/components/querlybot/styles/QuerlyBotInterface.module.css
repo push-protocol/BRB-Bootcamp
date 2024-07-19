@@ -1,0 +1,143 @@
+.querlyBotInterface {
+    width: 100%;
+    height: 500px;
+}
+
+.querlyBotInterfaceContainer {
+    position: relative;
+}
+
+.querlyBotInterfaceInput {
+    position: absolute;
+    width: 100%;
+    height: 50px;
+    top: 450px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+.querlyBotInterfaceInput input {
+    width: 300px;
+    height: 35px;
+    border-radius: 300px;
+    margin: 0px 5px;
+    border: none;
+    outline: none;
+    text-indent: 5px;
+    background-color: #3B3B5D;
+    color: white;
+}
+
+.querlyBotInterfaceInput form {
+    display: flex;
+}
+
+.querlyBotInterfaceInputSubmit {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.querlyBotInterfaceInputSubmit i {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 25px;
+}
+
+.querlyBotInterfaceInputSubmit i:hover {
+    color: #ffffffd8;
+    cursor: pointer;
+}
+
+.querlyBotChats {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    height: 450px;
+    overflow-y: scroll;
+}
+
+.querlyBotChatsHeader {
+    margin-top: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.querlyBotChatsHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.querlyBotChatsHeader i {
+    font-size: 35px;
+}
+
+.chatMessages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 25px;
+    margin-bottom: 100px;
+}
+
+.chatMessageSelf {
+    width: 95%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 5px;
+}
+
+.chatMessageOther {
+    width: 95%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    margin: 5px;
+    flex-direction: column;
+}
+
+.chatMessageSelf p,
+.chatMessageOther p {
+    max-width: 250px;
+    word-wrap: break-word; 
+    white-space: pre-wrap;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    background-color: #35354F;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.chatMessageOther p {
+    background-color: #3B3B5D;
+}
+
+.additionalResponses{
+    display: flex;
+    margin: 5px;
+}
+
+.additionalResponseOption{
+    padding: 5px 10px;
+    background-color: #35354F;
+    border-radius: 100px;
+    margin: 0px 5px;
+
+}
+
+.additionalResponseOption:hover{
+    background-color: #3B3B5D;
+    cursor: pointer;
+}

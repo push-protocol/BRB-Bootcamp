@@ -1,0 +1,49 @@
+
+.querlyLayout {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .querlyIcon {
+    cursor: pointer;
+    z-index: 2; /* Ensure the icon is above the interface when overlapping */
+  }
+  
+  .querlyContainer {
+    position: relative;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+  
+  .querlyInterface {
+    width: 350px;
+    height: 500px;
+    background-color: #27273E;
+    border-radius: 10px 10px 5px 10px;
+    z-index: 10;
+    position: absolute;
+    bottom: 60px;
+    transform: translateX(-50%);
+  }
+  
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .qurlyIconRotate {
+    animation: rotate 5s linear infinite;
+    transform-origin: center;
+  }
+
+  
+  

@@ -1,0 +1,59 @@
+.navigatorContainer{
+    width: 300px;
+    height: 100vh;
+    background-color: #111122;
+}
+
+.navigatorHeader{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.navigatiorHeader svg{
+    width: 100px;
+    height: 30px;
+}
+
+.navigatorOptions{
+    margin-top: 10px;
+}
+
+.navigatorOption{
+    margin: 10px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.navigatorOption:hover{
+    cursor: pointer;
+    background-color: #1C1C2F;
+}
+
+.navigatorOptionActive{
+    margin: 10px;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #1C1C2F;
+}
+
+.navigatorOptionIcon i{
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.navigatorOptionName{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0px 5px ;
+}

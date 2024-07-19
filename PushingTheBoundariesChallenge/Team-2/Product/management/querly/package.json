@@ -1,0 +1,36 @@
+{
+  "name": "querly",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 2709",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@flaticon/flaticon-uicons": "^3.3.1",
+    "@pushprotocol/restapi": "1.7.25",
+    "@pushprotocol/socket": "^0.5.3",
+    "@svgr/webpack": "^8.1.0",
+    "@tanstack/react-query": "^5.48.0",
+    "connectkit": "^1.8.2",
+    "connectkit-next-siwe": "^0.3.0",
+    "encoding": "^0.1.13",
+    "file-loader": "^6.2.0",
+    "next": "14.2.4",
+    "next-pwa": "^5.6.0",
+    "pino-pretty": "^11.2.1",
+    "react": "^18",
+    "react-dom": "^18",
+    "recoil": "^0.7.7",
+    "recoil-persist": "^5.1.0",
+    "siwe": "^2.3.2",
+    "viem": ">=2.13.3",
+    "wagmi": "^2.10.8"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "14.2.4"
+  }
+}
