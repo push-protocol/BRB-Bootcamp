@@ -1,0 +1,122 @@
+Final Corrected Code : 
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title StakingContract
+ * @dev A contract that allows users to stake ERC20 tokens, earn rewards, and unstake after a lockup period.
+ */
+contract BRBStaking is Ownable {
+    IERC20 public token;
+    uint256 public totalStaked;
+    uint256 public rewardPool;
+    uint256 public immutable LOCKUP_PERIOD; 
+    uint256 public immutable REWARD_AMOUNT; 
+
+    /**
+     * @dev Struct to represent a user's staking information.
+     */
+    struct User {
+        address userAddress;
+        uint256 stakeAmount;
+        bool initialized;
+        uint256 timeStamp;
+        uint256 stakeID;
+    }
+
+    mapping(address => mapping(uint256 => User)) public userStakeData;
+    mapping(address => uint256) public userStakeCount;
+
+    event UserInitialized(address indexed user);
+    event TokensStaked(address indexed user, uint256 amount, uint256 stakeID);
+    event TokensUnstaked(address indexed user, uint256 amount, uint256 stakeID);
+    event RewardsAdded(uint256 amount);
+
+    constructor(IERC20 _token, uint256 _lockupPeriod, uint256 _rewardAmount) {
+        token = _token;
+        LOCKUP_PERIOD = _lockupPeriod;
+        REWARD_AMOUNT = _rewardAmount;
+    }
+
+    function initializeUser() external {
+        require(!userStakeData[msg.sender][0].initialized, "User already initialized");
+        User memory user = User(msg.sender, 0, true, 0, 0);
+        userStakeData[msg.sender][0] = user;
+        emit UserInitialized(msg.sender);
+    }
+
+    function stake(uint256 _amount) external {
+        require(userStakeData[msg.sender][0].initialized, "User not initialized");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+
+        uint256 stakeID = userStakeCount[msg.sender];
+        User memory user = User(msg.sender, _amount, true, block.timestamp, stakeID);
+        userStakeData[msg.sender][stakeID] = user;
+
+        userStakeCount[msg.sender]++;
+        totalStaked += _amount;
+
+        emit TokensStaked(msg.sender, _amount, stakeID);
+    }
+
+    function unstake(uint256 _stakeID) external {
+        User storage user = userStakeData[msg.sender][_stakeID];
+        require(user.initialized, "Stake not found");
+        require(block.timestamp >= user.timeStamp + LOCKUP_PERIOD, "Lockup period not completed");
+
+        uint256 amountToTransfer = user.stakeAmount;
+        if (rewardPool >= REWARD_AMOUNT) {
+            amountToTransfer += REWARD_AMOUNT;
+            rewardPool -= REWARD_AMOUNT;
+        }
+
+        totalStaked -= user.stakeAmount;
+        delete userStakeData[msg.sender][_stakeID];
+
+        require(token.transfer(msg.sender, amountToTransfer), "Token transfer failed");
+
+        emit TokensUnstaked(msg.sender, user.stakeAmount, _stakeID);
+    }
+
+    function addReward(uint256 _amount) external onlyOwner {
+        require(token.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        rewardPool += _amount;
+
+        emit RewardsAdded(_amount);
+    }
+}
+
+
+// Issues are discussed below:
+
+1. Data Type for Stack ID and User Stake Count
+
+Issue: In the User struct, stack id is initialized as uint8, and userStakeCount is mapped with uint8. This limits the number of stakes.
+Improvement: Change the data type to uint256 to avoid limitations on the number of stakes.
+
+2. Constructor Initialization
+
+Issue: The constructor includes Ownable(msg.sender), which is unnecessary as the constructor does not take parameters.
+Improvement: Remove Ownable(msg.sender) from the constructor.
+
+
+3. Redundant Initialization in initializeUser Function
+
+Issue: The initializeUser function initializes userStakeData[msg.sender][0] with a zero User struct, which is redundant.
+Improvement: Remove the redundant initialization to streamline the function.
+Proposed Code Adjustments
+
+4. Immutability of Lockup Period and Reward Amount
+
+Issue: Lockup period and Reward Amount are not set as immutable despite being constants.
+Improvement: Use the immutable keyword for these variables to ensure they remain constant after deployment.
+
+
+5. Reward Pool Logic
+
+Issue: The current logic for adding rewards to the stake amount is unclear and could lead to confusion or manipulation.
+Improvement: Clarify the reward distribution logic to ensure it is straightforward and secure.
