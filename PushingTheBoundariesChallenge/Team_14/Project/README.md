@@ -6,6 +6,12 @@
 
 SOS AI is a sophisticated emergency response system that leverages cutting-edge technologies to enhance the efficiency and accuracy of handling 911 calls. By integrating AssemblyAI's transcription service, Twilio's voice API, HuggingFace's analysis tools, DigitalOcean's hosting solutions, and Firebase's real-time database, SOS AI ensures a timely and effective response to emergencies, providing critical support when it is needed most.
 
+## Walkthrough 
+
+- [FrontEnd-video](https://youtu.be/tP7V9_xB8JI)
+
+- [Backend-Video](https://youtu.be/jCalG0fj0bE)
+
 ## Technologies Used for backend
 
 ### 🧠 AssemblyAI's [Real-Time Transcription](https://www.assemblyai.com/docs/walkthroughs#realtime-streaming-transcription)
